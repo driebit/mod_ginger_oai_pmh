@@ -18,6 +18,8 @@ observe_oai_pmh_import({oai_pmh_import, Record}, Context) ->
     %% do more processing...
 ```
 
+Then go ahead and either import an endpoint or a file as explained below.
+
 ### Import records from an endpoint
 
 To import records directly from an OAI-PMH endpoint:
