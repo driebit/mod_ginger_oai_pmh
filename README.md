@@ -1,7 +1,7 @@
 mod_ginger_oai_pmh
 ==================
 
-A Zotonic module for harvesting [OAI-PMH](www.openarchives.org/pmh/) endpoints 
+A Zotonic module for harvesting [OAI-PMH](http://www.openarchives.org/pmh/) endpoints 
 and files.
 
 Usage
