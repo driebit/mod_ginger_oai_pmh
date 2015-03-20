@@ -20,8 +20,12 @@ get_node_text(Node) ->
         )
     ).
 
-collapse_text(Text) ->
-    lists:flatten([X#xmlText.value || X <- Text]).
+collapse_text(Node) when is_record(Node, xmlText) ->
+    Node#xmlText.value;
+collapse_text(Node) when is_record(Node, xmlElement) ->
+    collapse_text(Node#xmlElement.content);
+collapse_text(Node) when is_list(Node) ->
+    [collapse_text(X) || X <- Node].
 
 %% Get value from a node based on XPath
 get_value(Xpath, Node) ->
@@ -34,6 +38,5 @@ get_value(Xpath, Node) ->
             Value;
         Values ->
             %% List of text tuples
-            xml_utils:collapse_text(Values)
+            collapse_text(Values)
     end.
-
