@@ -25,7 +25,7 @@ collapse_text(Node) when is_record(Node, xmlText) ->
 collapse_text(Node) when is_record(Node, xmlElement) ->
     collapse_text(Node#xmlElement.content);
 collapse_text(Node) when is_list(Node) ->
-    [collapse_text(X) || X <- Node].
+    lists:concat([collapse_text(X) || X <- Node]).
 
 %% Get value from a node based on XPath
 get_value(Xpath, Node) ->
@@ -35,8 +35,8 @@ get_value(Xpath, Node) ->
             %% Empty XML node
             undefined;
         [#xmlElement{content=[#xmlText{value=Value}]}] ->
-            Value;
+            string:strip(Value);
         Values ->
             %% List of text tuples
-            collapse_text(Values)
+            string:strip(collapse_text(Values))
     end.
