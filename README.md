@@ -31,7 +31,7 @@ oai_pmh:import("http://example.com/oai-pmh", Context).
 You can supply a tuple list of URL params as second argument:
 
 ```erlang
-oai_pmh:import("http://example.com/oai-pmh, [{apiKey, "some_api_key"}], Context).
+oai_pmh:import("http://example.com/oai-pmh", [{apiKey, "some_api_key"}], Context).
 ```
 
 ### Import records from a file
