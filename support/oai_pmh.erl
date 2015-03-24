@@ -42,7 +42,7 @@ import(Records, Endpoint, UrlParams, ResumptionToken, Context) ->
 %% @doc Execute ListRecords call on endpoint
 list_records(Endpoint, UrlParams) ->
     Response = request(Endpoint, [{verb, "ListRecords"}] ++ UrlParams),
-    {XmlRoot, _} = xmerl_scan:string(Response, [{scan, normalize}]),
+    {XmlRoot, _} = xmerl_scan:string(Response, [{space, normalize}]),
     
     %% Retrieve resumption token
     ResumptionToken = xml_utils:get_value("//resumptionToken", XmlRoot),
