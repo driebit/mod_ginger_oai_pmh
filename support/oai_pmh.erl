@@ -11,7 +11,7 @@
 
 %% @doc Send a notification for each record in a OAI-PMH XML file
 import_file(File, Context) ->
-    {Root, _} = xmerl_scan:file(File),
+    {Root, _} = xmerl_scan:file(File, [{space, normalize}]),
     Records = parse_records(Root),
     [z_notifier:notify({oai_pmh_import, R}, Context) || R <- Records].
 
@@ -42,7 +42,7 @@ import(Records, Endpoint, UrlParams, ResumptionToken, Context) ->
 %% @doc Execute ListRecords call on endpoint
 list_records(Endpoint, UrlParams) ->
     Response = request(Endpoint, [{verb, "ListRecords"}] ++ UrlParams),
-    {XmlRoot, _} = xmerl_scan:string(Response),
+    {XmlRoot, _} = xmerl_scan:string(Response, [{scan, normalize}]),
     
     %% Retrieve resumption token
     ResumptionToken = xml_utils:get_value("//resumptionToken", XmlRoot),
