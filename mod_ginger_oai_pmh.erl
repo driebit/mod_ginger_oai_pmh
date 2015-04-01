@@ -7,4 +7,5 @@
 -mod_title("Ginger OAI-PMH import").
 -mod_description("Import OAI-PMH files and endpoints").
 -mod_prio(500).
+-mod_depends([mod_ginger_xml]).
 

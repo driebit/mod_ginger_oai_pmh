@@ -1,6 +1,9 @@
 -module(oai_pmh).
 
+-behaviour(gen_server).
+
 -export([
+    start_link/1, init/1, handle_call/3, handle_cast/2, handle_info/2, code_change/3, terminate/2, 
     import_file/2,
     import/2,
     import/3
@@ -8,6 +11,35 @@
 
 -include("zotonic.hrl").
 -include_lib("xmerl/include/xmerl.hrl").
+
+-record(state, {endpoint, url_params, context}).
+
+%% @spec start_link(SiteArgs) -> {ok,Pid} | ignore | {error,Error}
+%% @doc Start import server
+start_link(SiteProps) ->
+    gen_server:start_link(?MODULE, SiteProps, []).
+
+init(SiteProps) ->
+    {context, Context} = proplists:lookup(context, SiteProps),
+    {ok, #state{context=z_context:new(Context)}}.
+
+handle_call(Message, _From, State) ->
+    {stop, {unknown_call, Message}, State}.
+
+handle_cast(import, State=#state{url_params=UrlParams, endpoint=Endpoint, context=Context}) ->
+    import([], Endpoint, UrlParams, Context),
+    {noreply, State};
+handle_cast(Msg, State) ->
+    {stop, {unknown_cast, Msg}, State}.
+    
+handle_info(_Info, State) ->
+    {noreply, State}.
+
+code_change(_OldVsn, State, _Extra) ->
+    {ok, State}.
+
+terminate(_Reason, _State) ->
+    ok.
 
 %% @doc Send a notification for each record in a OAI-PMH XML file
 import_file(File, Context) ->
@@ -21,7 +53,7 @@ import(Endpoint, Context) ->
 
 %% @doc Send a notification for each record retrieved from an OAI-PMH endpoint
 import(Endpoint, UrlParams, Context) ->
-    import([], Endpoint, UrlParams, Context).
+    gen_server:cast(self(), import).
 
 import([], Endpoint, UrlParams, Context) ->
     {Records, ResumptionToken} = list_records(Endpoint, UrlParams),
@@ -45,7 +77,7 @@ list_records(Endpoint, UrlParams) ->
     {XmlRoot, _} = xmerl_scan:string(Response, [{space, normalize}]),
     
     %% Retrieve resumption token
-    ResumptionToken = xml_utils:get_value("//resumptionToken", XmlRoot),
+    ResumptionToken = ginger_xml:get_value("//resumptionToken", XmlRoot),
     {parse_records(XmlRoot), ResumptionToken}.
 
 %% @doc Execute resume request
