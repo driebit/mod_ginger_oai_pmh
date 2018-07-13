@@ -9,6 +9,12 @@
 -include("zotonic.hrl").
 -include_lib("xmerl/include/xmerl.hrl").
 
+-record(import, {endpoint = undefined,
+                 context = undefined,
+                 resumption_token = undefined,
+                 records = undefined,
+                 url_params = []}).
+
 %% @doc Send a notification for each record in a OAI-PMH XML file
 import_file(File, Context) ->
     {Root, _} = xmerl_scan:file(File, [{space, normalize}]),
