@@ -59,7 +59,6 @@ import(#import{} = Args) ->
 list_records(Endpoint, UrlParams) ->
     Response = request(Endpoint, [{verb, "ListRecords"}] ++ UrlParams),
     {XmlRoot, _} = xmerl_scan:string(Response, [{space, normalize}]),
-
     %% Retrieve resumption token
     ResumptionToken = ginger_xml:get_value("//resumptionToken", XmlRoot),
     {parse_records(XmlRoot), ResumptionToken}.
