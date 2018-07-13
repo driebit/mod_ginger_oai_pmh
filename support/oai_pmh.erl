@@ -9,6 +9,16 @@
 -include("zotonic.hrl").
 -include_lib("xmerl/include/xmerl.hrl").
 
+-record(import, {endpoint = undefined,
+                 context = undefined,
+                 resumption_token = undefined,
+                 records = undefined,
+                 url_params = []}).
+
+%%-----------------------------------------------------------------------------
+%% Module API
+%%-----------------------------------------------------------------------------
+
 %% @doc Send a notification for each record in a OAI-PMH XML file
 import_file(File, Context) ->
     {Root, _} = xmerl_scan:file(File, [{space, normalize}]),
@@ -21,37 +31,42 @@ import(Endpoint, Context) ->
 
 %% @doc Send a notification for each record retrieved from an OAI-PMH endpoint
 import(Endpoint, UrlParams, Context) ->
-    import([], Endpoint, UrlParams, Context).
+    {Records, Token} = list_records(Endpoint, UrlParams),
+    import(#import{records = Records,
+                   resumption_token = Token,
+                   endpoint = Endpoint,
+                   context = Context,
+                   url_params = UrlParams}).
 
-import([], Endpoint, UrlParams, Context) ->
-    {Records, ResumptionToken} = list_records(Endpoint, UrlParams),
-    import(Records, Endpoint, UrlParams, ResumptionToken, Context).
+%%-----------------------------------------------------------------------------
+%% Internal functions
+%%-----------------------------------------------------------------------------
 
-import([], _Endpoint, _UrlParams, undefined, _Context) ->
-    %% Empty resumption token, so reached end of data
+import(#import{records = [], resumption_token = undefined}) ->
     ok;
-    
-import([], Endpoint, UrlParams, ResumptionToken, Context) ->
-    {Records, NewResumptionToken} = list_records(Endpoint, UrlParams, ResumptionToken),
-    import(Records, Endpoint, UrlParams, NewResumptionToken, Context);
+import(#import{records = []} = Args) ->
+    {Records, NewToken} = list_records(Args#import.endpoint,
+                                       Args#import.url_params,
+                                       Args#import.resumption_token),
+    import(Args#import{records = Records, resumption_token = NewToken});
+import(#import{} = Args) ->
+    lists:foreach(fun(R) -> z_notifier:notify({oai_pmh_import, R}, Args#import.context) end,
+                  Args#import.records),
+    import(Args#import{records = []}).
 
-import(Records, Endpoint, UrlParams, ResumptionToken, Context) ->
-    [z_notifier:notify({oai_pmh_import, R}, Context) || R <- Records],
-    import([], Endpoint, UrlParams, ResumptionToken, Context).
 
 %% @doc Execute ListRecords call on endpoint
 list_records(Endpoint, UrlParams) ->
     Response = request(Endpoint, [{verb, "ListRecords"}] ++ UrlParams),
     {XmlRoot, _} = xmerl_scan:string(Response, [{space, normalize}]),
-    
     %% Retrieve resumption token
     ResumptionToken = ginger_xml:get_value("//resumptionToken", XmlRoot),
     {parse_records(XmlRoot), ResumptionToken}.
 
 %% @doc Execute resume request
 list_records(Endpoint, UrlParams, ResumptionToken) ->
-    %% Remove params that OAI-PMH does not allow in resume requests  
-    ResumeParams = proplists:delete(metadataPrefix, 
+    %% Remove params that OAI-PMH does not allow in resume requests
+    ResumeParams = proplists:delete(metadataPrefix,
         proplists:delete(set, UrlParams)
     ) ++ [{resumptionToken, ResumptionToken}],
     list_records(Endpoint, ResumeParams).
@@ -69,6 +84,6 @@ request(Endpoint, UrlParams) ->
         Response ->
             Response
     end.
-    
+
 parse_records(XmlRoot) ->
     xmerl_xpath:string("//record", XmlRoot).
