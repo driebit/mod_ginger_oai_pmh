@@ -15,6 +15,10 @@
                  records = undefined,
                  url_params = []}).
 
+%%-----------------------------------------------------------------------------
+%% Module API
+%%-----------------------------------------------------------------------------
+
 %% @doc Send a notification for each record in a OAI-PMH XML file
 import_file(File, Context) ->
     {Root, _} = xmerl_scan:file(File, [{space, normalize}]),
@@ -27,23 +31,29 @@ import(Endpoint, Context) ->
 
 %% @doc Send a notification for each record retrieved from an OAI-PMH endpoint
 import(Endpoint, UrlParams, Context) ->
-    import([], Endpoint, UrlParams, Context).
+    {Records, Token} = list_records(Endpoint, UrlParams),
+    import(#import{records = Records,
+                   resumption_token = Token,
+                   endpoint = Endpoint,
+                   context = Context,
+                   url_params = UrlParams}).
 
-import([], Endpoint, UrlParams, Context) ->
-    {Records, ResumptionToken} = list_records(Endpoint, UrlParams),
-    import(Records, Endpoint, UrlParams, ResumptionToken, Context).
+%%-----------------------------------------------------------------------------
+%% Internal functions
+%%-----------------------------------------------------------------------------
 
-import([], _Endpoint, _UrlParams, undefined, _Context) ->
-    %% Empty resumption token, so reached end of data
+import(#import{records = [], resumption_token = undefined}) ->
     ok;
+import(#import{records = []} = Args) ->
+    {Records, NewToken} = list_records(Args#import.endpoint,
+                                       Args#import.url_params,
+                                       Args#import.resumption_token),
+    import(Args#import{records = Records, resumption_token = NewToken});
+import(#import{} = Args) ->
+    lists:foreach(fun(R) -> z_notifier:notify({oai_pmh_import, R}, Args#import.context) end,
+                  Args#import.records),
+    import(Args#import{records = []}).
 
-import([], Endpoint, UrlParams, ResumptionToken, Context) ->
-    {Records, NewResumptionToken} = list_records(Endpoint, UrlParams, ResumptionToken),
-    import(Records, Endpoint, UrlParams, NewResumptionToken, Context);
-
-import(Records, Endpoint, UrlParams, ResumptionToken, Context) ->
-    [z_notifier:notify({oai_pmh_import, R}, Context) || R <- Records],
-    import([], Endpoint, UrlParams, ResumptionToken, Context).
 
 %% @doc Execute ListRecords call on endpoint
 list_records(Endpoint, UrlParams) ->
