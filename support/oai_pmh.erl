@@ -21,7 +21,7 @@
 
 %% @doc Send a notification for each record in a OAI-PMH XML file
 import_file(File, Context) ->
-    {Root, _} = xmerl_scan:file(File, [{space, normalize}]),
+    {Root, []} = xmerl_scan:file(File, [{space, normalize}]),
     Records = parse_records(Root),
     [z_notifier:notify({oai_pmh_import, R}, Context) || R <- Records].
 
