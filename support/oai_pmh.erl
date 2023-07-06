@@ -58,8 +58,14 @@ import(#import{records = []} = Args) ->
                                        Args#import.resumption_token),
     import(Args#import{records = Records, resumption_token = NewToken});
 import(#import{} = Args) ->
-    lists:foreach(fun(R) -> z_notifier:notify_sync({oai_pmh_import, R}, Args#import.context) end,
-                  Args#import.records),
+    lists:foreach(
+        fun(R) ->
+            z_notifier:notify_sync({oai_pmh_import, R,
+                #{rdf_property:dcterms(<<"source">>) => Args#import.endpoint}},
+                Args#import.context)
+        end,
+        Args#import.records
+     ),
     import(Args#import{records = []}).
 
 
